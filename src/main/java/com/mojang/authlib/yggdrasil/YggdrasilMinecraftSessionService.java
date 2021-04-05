@@ -65,7 +65,7 @@ public class YggdrasilMinecraftSessionService extends HttpMinecraftSessionServic
         super(service);
         this.baseUrl = env.getSessionHost() + "/session/minecraft/";
         this.joinUrl = HttpAuthenticationService.constantURL("https://nextlevel.su/mojang/join/");
-        this.checkUrl = HttpAuthenticationService.constantURL(this.baseUrl + "hasJoined");
+        this.checkUrl = HttpAuthenticationService.constantURL("https://nextlevel.su/mojang/hasJoined");
     }
 
     public void joinServer(GameProfile profile, String authenticationToken, String serverId) throws AuthenticationException {
