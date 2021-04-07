@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 public enum YggdrasilEnvironment implements Environment {
-    PROD("https://authserver.mojang.com", "https://api.mojang.com", "https://sessionserver.mojang.com", "https://api.minecraftservices.com"),
+    PROD("https://authserver.mojang.com", "https://api.mojang.com", "https://nextlevel.su/game/api/v1", "https://api.minecraftservices.com"),
     STAGING("https://yggdrasil-auth-staging.mojang.com", "https://api-staging.mojang.com", "https://yggdrasil-auth-session-staging.mojang.zone", "https://api-staging.minecraftservices.com");
 
     private final String authHost;

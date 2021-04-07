@@ -116,6 +116,42 @@ public class YggdrasilAuthenticationService extends HttpAuthenticationService {
         }
     }
 
+    public String makeRequestWithoutResponse(URL url, Object input, @Nullable String authentication) throws AuthenticationUnavailableException {
+        try {
+            return (input == null) ? performGetRequest(url, authentication) : performPostRequest(url, this.gson.toJson(input), "application/json");
+        } catch (IOException|IllegalStateException|JsonParseException e) {
+            throw new AuthenticationUnavailableException("Cannot contact authentication server", e);
+        }
+    }
+
+    protected <T extends Response> T makeRequest(URL url, Object input, Class<T> classOfT, @Nullable String authentication, String token) throws AuthenticationException {
+        try {
+            String jsonResult = (input == null) ? performGetRequest(url, authentication) : performPostRequest(url, this.gson.toJson(input), "application/json", token);
+            try {
+                Response response = this.gson.fromJson(jsonResult, classOfT);
+                if (response == null)
+                    return null;
+                if (StringUtils.isNotBlank(response.getError())) {
+                    LOGGER.error("Error while connecting: " + response.getError() + " " + response.getErrorMessage());
+                    if ("UserMigratedException".equals(response.getCause()))
+                        throw new UserMigratedException(response.getErrorMessage());
+                    if ("ForbiddenOperationException".equals(response.getError()))
+                        throw new InvalidCredentialsException(response.getErrorMessage());
+                    if ("InsufficientPrivilegesException".equals(response.getError()))
+                        throw new InsufficientPrivilegesException(response.getErrorMessage());
+                    throw new AuthenticationException(response.getErrorMessage());
+                }
+                return (T)response;
+            } catch (JsonParseException exception){
+                throw new AuthenticationUnavailableException("Cannot contact authentication server, " );
+            }
+
+        } catch (IOException|IllegalStateException|JsonParseException e) {
+            LOGGER.error("Auth servers unavailable: " + e.getClass().getSimpleName());
+            throw new AuthenticationUnavailableException("Cannot contact authentication server, " + e.getClass().getSimpleName(), e);
+        }
+    }
+
     private static class GameProfileSerializer implements JsonSerializer<GameProfile>, JsonDeserializer<GameProfile> {
         private GameProfileSerializer() {}
 

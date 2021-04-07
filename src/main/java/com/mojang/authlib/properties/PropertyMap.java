@@ -11,7 +11,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import org.apache.logging.log4j.LogManager;
+
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.Map;
 
 public class PropertyMap extends ForwardingMultimap<String, Property> {
@@ -62,4 +65,16 @@ public class PropertyMap extends ForwardingMultimap<String, Property> {
             return result;
         }
     }
+
+    public HashMap<String, Property> toMap(){
+        HashMap<String, Property> result = new HashMap<>();
+        for(Map.Entry<String, Property> entry: properties.entries()){
+            LogManager.getLogger().info(entry.getKey() + " " + entry.getValue().toString());
+            result.put(entry.getKey(), entry.getValue());
+        }
+
+        return result;
+    }
+
+
 }

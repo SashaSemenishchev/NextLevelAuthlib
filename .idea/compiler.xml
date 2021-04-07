@@ -9,5 +9,8 @@
         <module name="NextLevelAuthlib" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="NextLevelAuthlib" target="8" />
+    </bytecodeTargetLevel>
   </component>
 </project>

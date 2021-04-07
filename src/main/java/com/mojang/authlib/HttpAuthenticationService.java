@@ -9,8 +9,12 @@ import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Scanner;
 import javax.annotation.Nullable;
+
+import com.mojang.authlib.exceptions.AuthenticationException;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
@@ -45,19 +49,16 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
         Validate.notNull(url);
         Validate.notNull(post);
         Validate.notNull(contentType);
-        HttpURLConnection connection = createUrlConnection(url);
-        byte[] postAsBytes = post.getBytes(Charsets.UTF_8);
-        connection.setRequestProperty("Content-Type", contentType + "; charset=utf-8");
-        connection.setRequestProperty("Content-Length", "" + postAsBytes.length);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.addRequestProperty("Content-Type", contentType);
+
+        connection.addRequestProperty("User-Agent", "PostmanRuntime/7.6.28");
         connection.setDoOutput(true);
-        LOGGER.debug("Writing POST data to " + url + ": " + post);
-        OutputStream outputStream = null;
-        try {
-            outputStream = connection.getOutputStream();
-            IOUtils.write(postAsBytes, outputStream);
-        } finally {
-            IOUtils.closeQuietly(outputStream);
-        }
+        LOGGER.info("\n\n\nWriting POST data to " + url + ": " + post);
+        OutputStream out = connection.getOutputStream();
+        out.write(post.getBytes(StandardCharsets.UTF_8));
+        out.close();
         LOGGER.debug("Reading data from " + url);
         InputStream inputStream = null;
         try {
@@ -80,6 +81,74 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
             throw e;
         } finally {
             IOUtils.closeQuietly(inputStream);
+        }
+    }
+
+    public String performPostRequest(URL url, String post, String contentType, String token) throws IOException {
+        LOGGER.info("\n\nNeeded request");
+        Validate.notNull(url);
+        Validate.notNull(post);
+        Validate.notNull(contentType);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.addRequestProperty("Content-Type", contentType);
+        connection.addRequestProperty("Authorization", "Bearer " + token);
+        connection.addRequestProperty("User-Agent", "PostmanRuntime/7.6.28");
+        connection.addRequestProperty("Accept", "application/json");
+        connection.setDoOutput(true);
+        LOGGER.info("\n\n\nWriting POST data to " + url + ": " + post);
+        OutputStream out = null;
+        try{
+            out = connection.getOutputStream();
+            out.write(post.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception exception){
+            exception.printStackTrace();
+        } finally {
+            if(out != null)
+                out.close();
+        }
+
+        LOGGER.debug("Reading data from " + url);
+//        connection.connect();
+//        if(!String.valueOf(connection.getResponseCode()).startsWith("2")){
+//            throw new Error("Response code not 200");
+//        }
+        InputStream inputStream = null;
+        try {
+            inputStream = connection.getInputStream();
+            StringBuilder sb = new StringBuilder();
+            Scanner in = new Scanner(inputStream);
+            while(in.hasNext()){
+                sb.append(in.nextLine());
+            }
+            in.close();
+            String result = sb.toString();
+            LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
+            LOGGER.debug("Response: " + result);
+            return result;
+        } catch (Exception e) {
+            if(inputStream != null){
+                inputStream.close();
+            }
+            inputStream = connection.getErrorStream();
+            if (inputStream != null) {
+                StringBuilder sb = new StringBuilder();
+                Scanner in = new Scanner(inputStream);
+                while(in.hasNext()){
+                    sb.append(in.nextLine());
+                }
+                in.close();
+                String result = sb.toString();
+                LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
+                LOGGER.debug("Response: " + result);
+                return result;
+            }
+            LOGGER.debug("Request failed", e);
+            throw e;
+        } finally {
+            connection.disconnect();
+            if(inputStream != null)
+                inputStream.close();
         }
     }
 
@@ -89,23 +158,38 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
 
     public String performGetRequest(URL url, @Nullable String authentication) throws IOException {
         Validate.notNull(url);
-        HttpURLConnection connection = createUrlConnection(url);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.addRequestProperty("User-Agent", "PostmanRuntime/7.6.28");
+        connection.addRequestProperty("Accept", "application/json");
         if (authentication != null)
-            connection.setRequestProperty("Authorization", authentication);
+            connection.addRequestProperty("Authorization", authentication);
         LOGGER.debug("Reading data from " + url);
         InputStream inputStream = null;
         try {
             inputStream = connection.getInputStream();
-            String result = IOUtils.toString(inputStream, Charsets.UTF_8);
+            LOGGER.info(connection.getResponseMessage() + " " + connection.getResponseCode());
+            StringBuilder sb = new StringBuilder();
+            Scanner in = new Scanner(inputStream);
+            while(in.hasNext()){
+                sb.append(in.nextLine());
+            }
+            String result = sb.toString();
             LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
             LOGGER.debug("Response: " + result);
             return result;
         } catch (IOException e) {
-            IOUtils.closeQuietly(inputStream);
+            if(inputStream != null)
+                inputStream.close();
             inputStream = connection.getErrorStream();
             if (inputStream != null) {
                 LOGGER.debug("Reading error page from " + url);
-                String result = IOUtils.toString(inputStream, Charsets.UTF_8);
+                StringBuilder sb = new StringBuilder();
+                Scanner in = new Scanner(inputStream);
+                while(in.hasNext()){
+                    sb.append(in.nextLine());
+                }
+                String result = sb.toString();
                 LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
                 LOGGER.debug("Response: " + result);
                 return result;
@@ -113,7 +197,8 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
             LOGGER.debug("Request failed", e);
             throw e;
         } finally {
-            IOUtils.closeQuietly(inputStream);
+            if(inputStream != null)
+                inputStream.close();
         }
     }
 

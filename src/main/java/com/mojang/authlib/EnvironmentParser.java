@@ -32,7 +32,10 @@ public class EnvironmentParser {
     public static Optional<Environment> getEnvironmentFromProperties() {
         String envName = (environmentOverride != null) ? environmentOverride : System.getProperty("minecraft.api.env");
         Optional<Environment> env = YggdrasilEnvironment.fromString(envName).map(Environment.class::cast);
-        return env.isPresent() ? env : fromHostNames();
+        LOGGER.info("Patched.");
+        Optional<Environment> result = env.isPresent() ? env : fromHostNames();
+        LOGGER.info("Result: " + result.isPresent());
+        return result;
     }
 
     private static Optional<Environment> fromHostNames() {
@@ -44,7 +47,7 @@ public class EnvironmentParser {
             return Optional.of(Environment.create(auth, account, session, services, "properties"));
         if (auth != null || account != null || session != null)
             LOGGER.info("Ignoring hosts properties. All need to be set: " +
-                    Arrays.<String>asList(new String[] { "minecraft.api.auth.host", "minecraft.api.account.host", "minecraft.api.session.host" }));
+                    Arrays.<String>asList("minecraft.api.auth.host", "minecraft.api.account.host", "minecraft.api.session.host"));
         return Optional.empty();
     }
 }

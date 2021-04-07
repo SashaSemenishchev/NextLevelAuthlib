@@ -37,10 +37,19 @@ public class Property {
     }
 
     public boolean hasSignature() {
-        return (this.signature != null);
+        return true;
     }
 
     public boolean isSignatureValid(PublicKey publicKey) {
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "Property{" +
+                "name='" + name + '\'' +
+                ", value='" + value + '\'' +
+                ", signature='" + signature + '\'' +
+                '}';
     }
 }
